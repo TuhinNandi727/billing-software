@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Customer List</h2>
+<a href="/add-customer/">Add New Customer</a>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Phone</th>
+    <th>Email</th>
+    <th>Address</th>
+  </tr>
+  {% for customer in customers %}
+  <tr>
+    <td>{{customer.name}}</td>
+    <td>{{customer.phone}}</td>
+    <td>{{customer.email}}</td>
+    <td>{{customer.address}}</td>
+    <td>
+      <a href="/edit-customer/{{ customer.id }}/">Edit</a>
+      <a href="/delete-customer/{{ customer.id }}/">Delete</a>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

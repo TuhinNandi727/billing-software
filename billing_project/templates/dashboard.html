@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h1>Dashboard</h1>
+  <p>Welcome to Billing Software Dashboard </p>
+  <h2>Low Stock Products</h2>
+
+<table border="1">
+
+<tr>
+<th>Product</th>
+<th>Remaining Stock</th>
+</tr>
+
+{% for product in low_stock %}
+
+<tr>
+<td>{{ product.name }}</td>
+<td>{{ product.quantity }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+{% endblock %}

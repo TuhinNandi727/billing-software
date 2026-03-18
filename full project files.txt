@@ -1,0 +1,522 @@
+# admin.py----------------->
+from django.contrib import admin
+
+# Register your models here.
+from .models import Product, Customer,Invoice,InvoiceItem
+
+admin.site.register(Product)
+admin.site.register(Customer)
+admin.site.register(Invoice)
+admin.site.register(InvoiceItem)
+
+
+
+
+# forms.py----------------->
+from django import forms
+from .models import Product, Customer, Invoice
+ 
+class ProductForm(forms.ModelForm):
+  class Meta:
+    model = Product
+    fields = '__all__'
+
+class CustomerForm(forms.ModelForm):
+  class Meta:
+    model = Customer
+    fields = '__all__'
+
+class InvoiceForm(forms.ModelForm):
+  class Meta:
+    model = Invoice
+    fields = '__all__'
+
+
+
+
+# models.py----------------->
+from django.db import models
+
+# Create your models here.
+class Product(models.Model):
+  name = models.CharField(max_length=50)
+  code = models.CharField(max_length=10)
+  category = models.CharField(max_length=50)
+  price = models.DecimalField(max_digits=10, decimal_places=2)
+  quantity = models.IntegerField()
+  tax = models.DecimalField(max_digits=5, decimal_places=2)
+
+  # is used to define how an object of the model will appear as text.
+  def __str__(self): # self is current product object
+    return f"{self.name} ({self.code})"
+
+
+class Customer(models.Model):
+  name = models.CharField(max_length=50)
+  phone = models.CharField(max_length=15)
+  email = models.EmailField()
+  address = models.TextField()
+  def __str__(self): 
+    return self.name
+  
+
+class Invoice(models.Model):
+  customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+  date = models.DateField(auto_now_add=True)
+  total_amount = models.DecimalField(max_digits=10,decimal_places=2)
+  def __str__(self): 
+    return f"Invoice {self.id}"
+  
+class InvoiceItem(models.Model):
+  invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
+  product = models.ForeignKey(Product, on_delete=models.CASCADE)
+  quantity = models.IntegerField()
+  price = models.DecimalField(max_digits=10,decimal_places=2)
+  total = models.DecimalField(max_digits=10,decimal_places=2)
+  
+
+
+
+# urls.py----------------->
+from django.urls import path
+from . import views
+
+urlpatterns = [
+  path('', views.dashboard, name='dashboard'),
+
+  path('products/', views.product_list, name='product_list'),
+  path('add-product/', views.add_product, name='add_product'),
+  path('edit-product/<int:id>/', views.edit_product, name='edit_product'),
+  path('delete-product/<int:id>/', views.delete_product, name='delete_product'),
+
+  path('customers/', views.customer_list, name='customer_list'),
+  path('add-customer/', views.add_customer, name='add_customer'),
+  path('edit-customer/<int:id>/', views.edit_customer, name='edit_customer'),
+  path('delete-customer/<int:id>/', views.delete_customer, name='delete_customer'),
+
+  path('billing/', views.create_invoice, name='create_invoice'),
+  path('invoice/<int:id>/', views.invoice_detail, name='invoice_detail'),
+]
+
+
+
+# views.py----------------->
+from django.shortcuts import render, redirect
+from .models import Product, Customer, Invoice, InvoiceItem
+from .forms import ProductForm, CustomerForm, InvoiceForm
+
+
+# for dashboard
+def dashboard(request):
+  return render(request, 'dashboard.html')
+
+
+# for Product
+def product_list(request):
+  products = Product.objects.all()
+  return render(request, 'product/product_list.html', {'products': products})
+
+def add_product(request):
+  form = ProductForm()
+
+  if request.method == 'POST':
+    form = ProductForm(request.POST)
+    if form.is_valid():
+      form.save()
+      return redirect(product_list)
+
+  return render(request, 'product/add_product.html', {'form': form})
+
+def edit_product(request, id):
+  product = Product.objects.get(id=id)
+  form = ProductForm(instance=product)
+
+  if request.method=='POST':
+    form = ProductForm(request.POST, instance=product)
+    if form.is_valid():
+      form.save()
+      return redirect('product_list')
+  return render(request, 'product/edit_product.html', {'form':form})
+
+def delete_product(request, id):
+  product = Product.objects.get(id=id)
+  product.delete()
+  return redirect('product_list')
+
+
+# for Customer
+def customer_list(request):
+  customers = Customer.objects.all()
+  return render(request, 'customer/customer_list.html', {'customers': customers})
+
+def add_customer(request):
+  form = CustomerForm()
+
+  if request.method == 'POST':
+    form = CustomerForm(request.POST)
+    if form.is_valid():
+      form.save()
+      return redirect(customer_list)
+
+  return render(request, 'customer/add_customer.html', {'form': form})
+
+def edit_customer(request, id):
+  customer = Customer.objects.get(id=id)
+  form = CustomerForm(instance=customer)
+
+  if request.method=='POST':
+    form = CustomerForm(request.POST, instance=customer)
+    if form.is_valid():
+      form.save()
+      return redirect('customer_list')
+  return render(request, 'customer/edit_customer.html', {'form':form})
+
+def delete_customer(request, id):
+  customer = Customer.objects.get(id=id)
+  customer.delete()
+  return redirect('customer_list')
+
+
+# for invoice
+def create_invoice(request):
+  form= InvoiceForm()
+  products = Product.objects.all()
+  
+  if request.method == 'POST':
+    form = InvoiceForm(request.POST)
+    
+    if form.is_valid():
+      invoice = form.save(commit=False)
+      invoice.total_amount=0
+      invoice.save()
+
+      total_amount=0
+      for product in products:
+        qty = request.POST.get(f'quantity_{{product.id}}')
+        if qty and int(qty)>0:
+          quantity = int(qty)
+          price = product.price
+          total = quantity*price
+          InvoiceItem.objects.create(
+            invoice=invoice,
+            product=product,
+            quantity=quantity,
+            price=price,
+            total=total
+          )
+          total_amount += total
+      invoice.total_amount = total_amount
+      invoice.save()
+      return redirect('invoice_detail', id=invoice.id)
+
+  return render(request, 'billing/create_invoice.html',{'form' : form, 'products' : products})
+
+
+# for invoice detail
+def invoice_detail(request, id):
+  invoice = Invoice.objects.get(id=id)
+  items = InvoiceItem.objects.filter(invoice=invoice)
+  return render(request, 'billing/invoice_detail.html', {'invoice': invoice, 'items': items})
+
+
+
+
+#billing/create_invoice.html----------->
+{% extends 'base.html' %}
+{% block content %}
+
+  <h2>Create Invoice</h2>
+  <form method="POST">
+    {% csrf_token %}  
+    
+    <label>Select Customer</label>
+    {{form.customer}}
+    <br><br>
+    <h3>Products</h3>
+    <table border="1">
+      <tr>
+        <th>Product</th>
+        <th>Price</th>
+        <th>Quantity</th>
+      </tr>
+      {% for product in products %}
+      <tr>
+        <td>{{product.name}}</td>
+        <td>{{product.price}}</td>
+        <td>
+          <input type="number" name="quantity_{{product.id}}" value="0"> 
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <br>
+    <button type="submit">Generate Invoice</button>
+  </form>
+{% endblock %}
+
+
+
+
+#billing/invoice_detail.html----------->
+{% extends 'base.html' %}
+{% block content %}
+
+<div style="width:300px;font-family:monospace">
+<center>
+<h3>My Shop</h3>
+<p>Phone: 9876543210</p>
+<p>Kolkata, WB</p>
+</center>
+
+<hr>
+<p>Bill No: {{ invoice.id }}</p>
+<p>Date: {{ invoice.date }}</p>
+
+<p><b>Customer:</b> {{ invoice.customer.name }}</p>
+<p>{{ invoice.customer.phone }}</p>
+<p>{{ invoice.customer.address }}</p>
+<p>{{ invoice.customer.email }}</p>
+
+<hr>
+
+<table width="100%">
+<tr>
+<th>Item</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Total</th>
+</tr>
+
+{% for item in items %}
+
+<tr>
+<td>{{ item.product.name }}</td>
+<td>{{ item.quantity }}</td>
+<td>{{ item.price }}</td>
+<td>{{ item.total }}</td>
+</tr>
+
+{% endfor %}
+</table>
+
+<hr>
+
+<h3>Total: ₹{{ invoice.total_amount }}</h3>
+
+<center>
+<p>Thank You! Visit Again</p>
+</center>
+
+</div>
+
+{% endblock %}
+
+
+
+
+#customer/add_customer.html----------->
+{% extends 'base.html' %}
+{% block content %}
+<h2>Add Customer</h2>
+<form method= "POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Save Customer</button>
+</form>
+{% endblock %}
+<!--
+Flow:
+ProductForm (Python)
+→ View sends form to template
+→ {{ form.as_p }} converts form to HTML inputs
+→ User fills form
+→ <form method="POST"> sends data
+→ Django view receives POST request
+-->
+
+
+
+#customer/customer_list.html----------->
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Product List</h2>
+<a href="/add-customer/">Add New Customer</a>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Phone</th>
+    <th>Email</th>
+    <th>Address</th>
+  </tr>
+  {% for customer in customers %}
+  <tr>
+    <td>{{customer.name}}</td>
+    <td>{{customer.phone}}</td>
+    <td>{{customer.email}}</td>
+    <td>{{customer.address}}</td>
+    <td>
+      <a href="/edit-customer/{{ customer.id }}/">Edit</a>
+      <a href="/delete-customer/{{ customer.id }}/">Delete</a>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}
+
+
+
+
+#customer/edit_customer.html----------->
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Edit Customer</h2>
+<form method="POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <button type="submit">Update Customer</button>
+</form>
+
+{% endblock %}
+
+
+
+#product/edit_product.html-----------> 
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Edit Product</h2>
+<form method="POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <button type="submit">Update Product</button>
+</form>
+
+{% endblock %}
+
+
+
+#product/product_list.html-----------> 
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Product List</h2>
+<a href="/add-product/">Add New Product</a>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Code</th>
+    <th>Category</th>
+    <th>Price</th>
+    <th>Quantity</th>
+    <th>tax</th>
+  </tr>
+  {% for product in products %}
+  <tr>
+    <td>{{product.name}}</td>
+    <td>{{product.code}}</td>
+    <td>{{product.category}}</td>
+    <td>{{product.price}}</td>
+    <td>{{product.quantity}}</td>
+    <td>{{product.tax}}</td>
+
+    <td>
+      <a href="/edit-product/{{product.id}}/">Edit</a>
+      <a href="/delete-product/{{product.id}}/">Delete</a>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}
+
+
+#product/add_product.html-----------> 
+{% extends 'base.html' %}
+{% block content %}
+<h2>Add Product</h2>
+<form method= "POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Save Product</button>
+</form>
+{% endblock %}
+
+
+
+#base.html----------->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Billing Software</title>
+
+  <style>
+    body{
+      margin: 0;
+      padding: 0;
+      font-family: Arial;
+    }
+    .navbar {
+      padding: 20px;
+      color: white;
+      background-color: #2c3e50;
+      font-size: 32px;
+    }
+    .sidebar {
+      width: 180px;
+      height: 100vh;
+      color: white;
+      background-color: #34495e;
+      padding-top: 20px;
+      left: 0;
+      position: fixed;
+    }
+    .sidebar a{
+      color: white;
+      display: block;
+      padding: 10px;
+      padding-left: 30px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .sidebar a:hover{
+      background:#2c3e50;
+    }
+    .content{
+      margin-left: 200px;
+      padding: 20px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    Billing Software
+  </div>
+  <div class="sidebar">
+    <a href="/">Dashboard</a>
+    <a href="/products/">Products</a>
+    <a href="/customers/">Customers</a>
+    <a href="/billing/">Create Bill</a>
+    <a href="/reports">Reports</a>
+  </div>
+  <div class="content">
+    {% block content %}
+
+    {% endblock content %}
+  </div>
+</body>
+</html>
+
+
+
+#dashboard.html----->
+{% extends 'base.html' %}
+{% block content %}
+  <h1>Dashboard</h1>
+  <p>Welcome to Billing Software Dashboard </p>
+{% endblock %}

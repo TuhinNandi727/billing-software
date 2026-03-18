@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <h2>Sales Report</h2>
+  <h3>Total Sales: ₹{{ total_sales }}</h3>
+  <h3>Today's Sales: ₹{{ today_sales }}</h3>
+  <hr>
+  <h3>Invoice History</h3>
+  <table border="1">
+    <tr>
+      <td>Invoice ID</td>
+      <td>Customer</td>
+      <td>Date</td>
+      <td>Total</td>
+      <td>View</td>
+    </tr>
+    {% for invoice in invoices %}
+      <tr>
+        <td>{{ invoice.id }}</td>
+        <td>{{ invoice.customer.name }}</td>
+        <td>{{ invoice.date }}</td>
+        <td>{{ invoice.total_amount }}</td>
+        <td><a href="{% url 'invoice_detail' invoice.id %}">View</a></td>
+      </tr>
+      {% endfor %}
+  </table>
+{% endblock %}

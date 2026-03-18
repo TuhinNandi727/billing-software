@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Add Customer</h2>
+<form method= "POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Save Customer</button>
+</form>
+{% endblock %}
+<!--
+Flow:
+ProductForm (Python)
+→ View sends form to template
+→ {{ form.as_p }} converts form to HTML inputs
+→ User fills form
+→ <form method="POST"> sends data
+→ Django view receives POST request
+-->

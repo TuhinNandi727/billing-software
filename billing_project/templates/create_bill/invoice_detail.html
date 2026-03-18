@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  #invoice-area, #invoice-area * {
+    visibility: visible;
+  }
+
+  #invoice-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+
+}
+</style>
+<div id="invoice-area" style="width:300px;font-family:monospace">
+<center>
+<h2>Swasti Digital Station</h2>
+<p>Phone: 79980 95453</p>
+<p>Mohanpur, barrackpore, Kolkata, WB-700121</p>
+</center>
+
+<hr>
+<p>Bill No: {{ invoice.id }}</p>
+<p>Date: {{ invoice.date|date:"d-m-Y H:i" }}</p>
+
+<p><b>Customer:</b> {{ invoice.customer.name }}</p>
+<p>{{ invoice.customer.phone }}</p>
+<p>{{ invoice.customer.address }}</p>
+<p>{{ invoice.customer.email }}</p>
+
+<hr>
+
+<table width="100%">
+<tr>
+<th>Item</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Total</th>
+</tr>
+
+{% for item in items %}
+
+<tr>
+<td>{{ item.product.name }}</td>
+<td>{{ item.quantity }}</td>
+<td>{{ item.price }}</td>
+<td>{{ item.total }}</td>
+</tr>
+
+{% endfor %}
+</table>
+
+<hr>
+
+<h3>Total: ₹{{ invoice.total_amount }}</h3>
+
+<center>
+<p>Thank You! Visit Again</p>
+</center>
+
+</div>
+<button onclick="window.print()">Print Invoice</button>
+
+{% endblock %}

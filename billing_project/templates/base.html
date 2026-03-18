@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Billing Software</title>
+
+  <style>
+    body{
+      margin: 0;
+      padding: 0;
+      font-family: Arial;
+    }
+    .navbar {
+      padding: 20px;
+      color: white;
+      background-color: #2c3e50;
+      font-size: 32px;
+    }
+    .sidebar {
+      width: 180px;
+      height: 100vh;
+      color: white;
+      background-color: #34495e;
+      padding-top: 20px;
+      left: 0;
+      position: fixed;
+    }
+    .sidebar a{
+      color: white;
+      display: block;
+      padding: 10px;
+      padding-left: 30px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .sidebar a:hover{
+      background:#2c3e50;
+    }
+    .content{
+      margin-left: 200px;
+      padding: 20px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    Billing Software
+  </div>
+  <div class="sidebar">
+    <a href="/">Dashboard</a>
+    <a href="/products/">Products</a>
+    <a href="/customers/">Customers</a>
+    <a href="/create-invoice/">Create Bill</a>
+    <a href="/reports/">Reports</a>
+  </div>
+  <div class="content">
+    {% block content %}
+
+    {% endblock content %}
+  </div>
+</body>
+</html>
